@@ -22,7 +22,7 @@ public class InfiniteBackground : MonoBehaviour {
     }
 
     void LateUpdate() {
-        if (targetCamera == null) return;
+        if (targetCamera == null || mat == null) return;
 
         // Tính toán độ dời dựa trên vị trí camera
         Vector3 camPos = targetCamera.position;
