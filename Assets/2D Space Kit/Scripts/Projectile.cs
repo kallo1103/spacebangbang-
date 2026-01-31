@@ -6,6 +6,9 @@ public class Projectile : MonoBehaviour {
 	public GameObject hit_effect;
 	public GameObject firing_ship;
 	
+	[Header("Damage")]
+	public float damage = 25f;  // Sát thương gây ra khi trúng enemy
+	
 	private bool isInitialized = false;
 	private bool canCollide = false;  // Delay để tránh va chạm ngay khi spawn
 	private float spawnTime;
@@ -55,6 +58,14 @@ public class Projectile : MonoBehaviour {
 		// Không va chạm với các projectile khác
 		if (col.gameObject.tag == "Projectile") {
 			return;
+		}
+		
+		// ===== XỬ LÝ SÁT THƯƠNG ENEMY =====
+		if (col.gameObject.tag == "Enemy") {
+			Enemy enemy = col.gameObject.GetComponent<Enemy>();
+			if (enemy != null) {
+				enemy.TakeDamage(damage);
+			}
 		}
 		
 		// Va chạm hợp lệ - spawn hiệu ứng và destroy
