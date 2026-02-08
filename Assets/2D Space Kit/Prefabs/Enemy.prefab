@@ -29,8 +29,8 @@ Transform:
   m_GameObject: {fileID: 8757627163358327087}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.07, y: 3.42, z: 0}
-  m_LocalScale: {x: 1.255188, y: 0.98, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -176,3 +176,8 @@ MonoBehaviour:
   explosionPrefab: {fileID: 100002, guid: cafecd3fc3b761c45bb1553f35cf5c96, type: 3}
   showDebugInfo: 0
   patrolRange: 5
+  canShoot: 1
+  projectilePrefab: {fileID: 100000, guid: bfe0ba4acc768a5448d46a6c63d8106a, type: 3}
+  fireRate: 2
+  projectileSpeed: 400
+  contactDamage: 25

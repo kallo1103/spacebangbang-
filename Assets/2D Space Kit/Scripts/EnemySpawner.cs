@@ -11,8 +11,8 @@ public class EnemySpawner : MonoBehaviour
     public float spawnDelay = 1f;           // Delay trước khi bắt đầu spawn
     
     [Header("Spawn Area")]
-    public float spawnRangeX = 10f;         // Phạm vi spawn theo X
-    public float spawnPositionY = 10f;      // Vị trí Y spawn (trên màn hình)
+    public float spawnRangeX = 8f;          // Phạm vi spawn theo X (giảm để nằm trong camera)
+    public float spawnPositionY = 5f;       // Vị trí Y spawn (giảm để nằm trong camera)
     
     [Header("Wave Settings")]
     public bool useWaves = false;           // Bật chế độ wave

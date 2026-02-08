@@ -8,6 +8,7 @@ public class Projectile : MonoBehaviour {
 	
 	[Header("Damage")]
 	public float damage = 25f;  // Sát thương gây ra khi trúng enemy
+	public bool isEnemyProjectile = false;  // True nếu là đạn của enemy
 	
 	private bool isInitialized = false;
 	private bool canCollide = false;  // Delay để tránh va chạm ngay khi spawn
@@ -61,10 +62,18 @@ public class Projectile : MonoBehaviour {
 		}
 		
 		// ===== XỬ LÝ SÁT THƯƠNG ENEMY =====
-		if (col.gameObject.tag == "Enemy") {
+		if (col.gameObject.tag == "Enemy" && !isEnemyProjectile) {
 			Enemy enemy = col.gameObject.GetComponent<Enemy>();
 			if (enemy != null) {
 				enemy.TakeDamage(damage);
+			}
+		}
+		
+		// ===== XỬ LÝ SÁT THƯƠNG PLAYER =====
+		if (col.gameObject.tag == "Player" && isEnemyProjectile) {
+			PlayerHealth playerHealth = col.gameObject.GetComponent<PlayerHealth>();
+			if (playerHealth != null) {
+				playerHealth.TakeDamage(damage);
 			}
 		}
 		

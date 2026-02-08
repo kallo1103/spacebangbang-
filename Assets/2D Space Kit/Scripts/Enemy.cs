@@ -36,6 +36,15 @@ public class Enemy : MonoBehaviour
     private float patrolDirection = 1f;
     public float patrolRange = 5f;
     
+    [Header("Shooting")]
+    public bool canShoot = false;           // Bật/tắt khả năng bắn
+    public GameObject projectilePrefab;     // Prefab đạn enemy
+    public float fireRate = 2f;             // Thời gian giữa các lần bắn
+    public float projectileSpeed = 400f;    // Tốc độ đạn
+    public float contactDamage = 25f;       // Sát thương khi đâm vào player
+    
+    private float nextFireTime;
+    
     void Start()
     {
         currentHealth = maxHealth;
@@ -53,6 +62,7 @@ public class Enemy : MonoBehaviour
     void Update()
     {
         HandleMovement();
+        HandleShooting();
     }
     
     /// <summary>
@@ -111,6 +121,49 @@ public class Enemy : MonoBehaviour
         if (Mathf.Abs(transform.position.x - patrolStartPos.x) > patrolRange)
         {
             patrolDirection *= -1f;
+        }
+    }
+    
+    /// <summary>
+    /// Xử lý bắn đạn về phía player
+    /// </summary>
+    private void HandleShooting()
+    {
+        if (!canShoot || projectilePrefab == null) return;
+        if (playerTransform == null) return;
+        
+        if (Time.time >= nextFireTime)
+        {
+            Shoot();
+            nextFireTime = Time.time + fireRate;
+        }
+    }
+    
+    private void Shoot()
+    {
+        // Tạo đạn tại vị trí enemy, hướng về phía player
+        Vector3 directionToPlayer = (playerTransform.position - transform.position).normalized;
+        float angle = Mathf.Atan2(directionToPlayer.y, directionToPlayer.x) * Mathf.Rad2Deg - 90f;
+        Quaternion rotation = Quaternion.Euler(0, 0, angle);
+        
+        GameObject bullet = Instantiate(projectilePrefab, transform.position, rotation);
+        
+        // Đẩy đạn về hướng player
+        Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
+        if (bulletRb != null)
+        {
+            bulletRb.AddForce(directionToPlayer * projectileSpeed);
+        }
+        
+        // Gán tag để Projectile biết đây là đạn enemy
+        bullet.tag = "EnemyProjectile";
+        
+        // Gán firing_ship cho Projectile script
+        Projectile projectileScript = bullet.GetComponent<Projectile>();
+        if (projectileScript != null)
+        {
+            projectileScript.firing_ship = gameObject;
+            projectileScript.isEnemyProjectile = true;
         }
     }
     
@@ -179,9 +232,12 @@ public class Enemy : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            // TODO: Gây sát thương cho player
-            // PlayerHealth playerHealth = col.GetComponent<PlayerHealth>();
-            // if (playerHealth != null) playerHealth.TakeDamage(50f);
+            // Gây sát thương cho player khi đâm vào
+            PlayerHealth playerHealth = col.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.TakeDamage(contactDamage);
+            }
             
             // Tự hủy khi đâm vào player
             Die();
