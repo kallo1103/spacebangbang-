@@ -16,6 +16,9 @@ public class Enemy : MonoBehaviour
     [Header("Effects")]
     public GameObject explosionPrefab;  // Kéo Explosion.prefab vào đây
     
+    [Header("Sound")]
+    public AudioClip explosionSound;    // Kéo file SFX tiếng nổ vào đây
+    
     [Header("Debug")]
     public bool showDebugInfo = false;
     
@@ -214,8 +217,17 @@ public class Enemy : MonoBehaviour
             explosion.transform.localScale = transform.localScale;
         }
         
-        // TODO: Cộng điểm cho player (khi có GameManager)
-        // GameManager.Instance.AddScore(scoreValue);
+        // Phát âm thanh nổ (PlayClipAtPoint để âm thanh vẫn phát sau khi enemy bị Destroy)
+        if (explosionSound != null)
+        {
+            AudioSource.PlayClipAtPoint(explosionSound, transform.position);
+        }
+        
+        // Cộng điểm cho player
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.AddScore(scoreValue);
+        }
         
         if (showDebugInfo)
         {

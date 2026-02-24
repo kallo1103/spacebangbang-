@@ -12,6 +12,9 @@ public class PlayerHealth : MonoBehaviour
     [Header("Effects")]
     public GameObject deathExplosionPrefab;  // Hiệu ứng nổ khi chết
     
+    [Header("Sound")]
+    public AudioClip deathExplosionSound;    // Âm thanh nổ khi chết
+    
     [Header("Invincibility")]
     public float invincibilityDuration = 1f;  // Thời gian bất tử sau khi bị đánh
     
@@ -92,6 +95,12 @@ public class PlayerHealth : MonoBehaviour
         if (deathExplosionPrefab != null)
         {
             Instantiate(deathExplosionPrefab, transform.position, Quaternion.identity);
+        }
+        
+        // Phát âm thanh nổ
+        if (deathExplosionSound != null)
+        {
+            AudioSource.PlayClipAtPoint(deathExplosionSound, transform.position);
         }
         
         // Thông báo cho các hệ thống khác (GameManager, UI...)

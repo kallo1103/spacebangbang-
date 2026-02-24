@@ -71,8 +71,8 @@ public class GameManager : MonoBehaviour
         
         Debug.Log($"GAME OVER! Final Score: {currentScore}");
         
-        // Có thể dừng game hoặc chậm lại
-        // Time.timeScale = 0f;  // Uncomment nếu muốn pause hoàn toàn
+        // Dừng game khi Game Over
+        Time.timeScale = 0f;
         
         // Hiển thị UI game over
         if (gameOverPanel != null)

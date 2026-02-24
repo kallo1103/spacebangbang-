@@ -9,10 +9,17 @@ public class PlayerControlledTurret : MonoBehaviour {
 	public float turret_rotation_speed = 3f;
 	public float shot_speed;
 	int barrel_index = 0;
+
+	[Header("Sound")]
+	public AudioClip shootSound;          // Kéo file SFX tiếng bắn vào đây
+	private AudioSource audioSource;
 	
 	// Use this for initialization
 	void Start () {
-	
+		audioSource = GetComponent<AudioSource>();
+		if (audioSource == null) {
+			audioSource = gameObject.AddComponent<AudioSource>();
+		}
 	}
 	
 	// Update is called once per frame
@@ -31,6 +38,11 @@ public class PlayerControlledTurret : MonoBehaviour {
 
 		// Bắn khi click chuột trái (New Input System)
 		if (Mouse.current.leftButton.wasPressedThisFrame && barrel_hardpoints != null && barrel_hardpoints.Length > 0) {
+			// Phát âm thanh bắn
+			if (shootSound != null && audioSource != null) {
+				audioSource.PlayOneShot(shootSound);
+			}
+
 			GameObject bullet = (GameObject) Instantiate(weapon_prefab, barrel_hardpoints[barrel_index].transform.position, transform.rotation);
 			
 			Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
