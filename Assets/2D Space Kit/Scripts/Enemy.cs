@@ -1,27 +1,19 @@
 using UnityEngine;
 
 /// <summary>
-/// Script điều khiển Enemy - bao gồm health, AI movement, và hiệu ứng nổ
+/// Script điều khiển Enemy - bao gồm AI movement và shooting
+/// Health được quản lý bởi EnemyHealth component (add cùng GameObject)
 /// </summary>
+[RequireComponent(typeof(EnemyHealth))]
 public class Enemy : MonoBehaviour
 {
-    [Header("Stats")]
-    public float maxHealth = 100f;
-    public int scoreValue = 100;  // Điểm nhận khi tiêu diệt
-    
     [Header("Movement")]
     public float moveSpeed = 3f;
     public MovementType movementType = MovementType.ChasePlayer;
-    
-    [Header("Effects")]
-    public GameObject explosionPrefab;  // Kéo Explosion.prefab vào đây
-    
-    [Header("Sound")]
-    public AudioClip explosionSound;    // Kéo file SFX tiếng nổ vào đây
-    
+
     [Header("Debug")]
     public bool showDebugInfo = false;
-    
+
     // Enums
     public enum MovementType
     {
@@ -30,30 +22,26 @@ public class Enemy : MonoBehaviour
         MoveDown,       // Bay xuống (classic shooter)
         Patrol          // Bay qua lại
     }
-    
+
     // Private variables
-    private float currentHealth;
     private Transform playerTransform;
-    private SpriteRenderer spriteRenderer;
     private Vector3 patrolStartPos;
     private float patrolDirection = 1f;
     public float patrolRange = 5f;
-    
+
     [Header("Shooting")]
-    public bool canShoot = false;           // Bật/tắt khả năng bắn
-    public GameObject projectilePrefab;     // Prefab đạn enemy
-    public float fireRate = 2f;             // Thời gian giữa các lần bắn
-    public float projectileSpeed = 400f;    // Tốc độ đạn
-    public float contactDamage = 25f;       // Sát thương khi đâm vào player
-    
+    public bool canShoot = false;
+    public GameObject projectilePrefab;
+    public float fireRate = 2f;
+    public float projectileSpeed = 400f;
+    public float contactDamage = 25f;
+
     private float nextFireTime;
-    
+
     void Start()
     {
-        currentHealth = maxHealth;
-        spriteRenderer = GetComponent<SpriteRenderer>();
         patrolStartPos = transform.position;
-        
+
         // Tìm Player trong scene
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
@@ -61,13 +49,13 @@ public class Enemy : MonoBehaviour
             playerTransform = player.transform;
         }
     }
-    
+
     void Update()
     {
         HandleMovement();
         HandleShooting();
     }
-    
+
     /// <summary>
     /// Xử lý di chuyển dựa trên movement type
     /// </summary>
@@ -89,44 +77,38 @@ public class Enemy : MonoBehaviour
                 break;
         }
     }
-    
+
     private void ChasePlayer()
     {
         if (playerTransform == null) return;
-        
-        // Hướng tới player
+
         Vector3 direction = (playerTransform.position - transform.position).normalized;
         transform.position += direction * moveSpeed * Time.deltaTime;
-        
-        // Xoay về phía player
+
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
         transform.rotation = Quaternion.Euler(0, 0, angle);
     }
-    
+
     private void MoveDown()
     {
-        // Di chuyển xuống dưới màn hình
         transform.position += Vector3.down * moveSpeed * Time.deltaTime;
-        
-        // Tự hủy nếu ra khỏi màn hình
+
         if (transform.position.y < -15f)
         {
             Destroy(gameObject);
         }
     }
-    
+
     private void Patrol()
     {
-        // Di chuyển qua lại theo chiều ngang
         transform.position += Vector3.right * patrolDirection * moveSpeed * Time.deltaTime;
-        
-        // Đổi hướng khi đi quá phạm vi
+
         if (Mathf.Abs(transform.position.x - patrolStartPos.x) > patrolRange)
         {
             patrolDirection *= -1f;
         }
     }
-    
+
     /// <summary>
     /// Xử lý bắn đạn về phía player
     /// </summary>
@@ -134,34 +116,30 @@ public class Enemy : MonoBehaviour
     {
         if (!canShoot || projectilePrefab == null) return;
         if (playerTransform == null) return;
-        
+
         if (Time.time >= nextFireTime)
         {
             Shoot();
             nextFireTime = Time.time + fireRate;
         }
     }
-    
+
     private void Shoot()
     {
-        // Tạo đạn tại vị trí enemy, hướng về phía player
         Vector3 directionToPlayer = (playerTransform.position - transform.position).normalized;
         float angle = Mathf.Atan2(directionToPlayer.y, directionToPlayer.x) * Mathf.Rad2Deg - 90f;
         Quaternion rotation = Quaternion.Euler(0, 0, angle);
-        
+
         GameObject bullet = Instantiate(projectilePrefab, transform.position, rotation);
-        
-        // Đẩy đạn về hướng player
+
         Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
         if (bulletRb != null)
         {
             bulletRb.AddForce(directionToPlayer * projectileSpeed);
         }
-        
-        // Gán tag để Projectile biết đây là đạn enemy
+
         bullet.tag = "EnemyProjectile";
-        
-        // Gán firing_ship cho Projectile script
+
         Projectile projectileScript = bullet.GetComponent<Projectile>();
         if (projectileScript != null)
         {
@@ -169,74 +147,7 @@ public class Enemy : MonoBehaviour
             projectileScript.isEnemyProjectile = true;
         }
     }
-    
-    /// <summary>
-    /// Gọi method này khi enemy bị trúng đạn
-    /// </summary>
-    public void TakeDamage(float damage)
-    {
-        currentHealth -= damage;
-        
-        if (showDebugInfo)
-        {
-            Debug.Log($"{gameObject.name} took {damage} damage. Health: {currentHealth}/{maxHealth}");
-        }
-        
-        // Hiệu ứng flash khi bị trúng đạn
-        StartCoroutine(FlashRed());
-        
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
-    }
-    
-    private System.Collections.IEnumerator FlashRed()
-    {
-        if (spriteRenderer != null)
-        {
-            Color originalColor = spriteRenderer.color;
-            spriteRenderer.color = Color.red;
-            yield return new WaitForSeconds(0.1f);
-            
-            // Kiểm tra null vì object có thể đã bị destroy
-            if (spriteRenderer != null)
-            {
-                spriteRenderer.color = originalColor;
-            }
-        }
-    }
-    
-    private void Die()
-    {
-        // Spawn hiệu ứng nổ
-        if (explosionPrefab != null)
-        {
-            GameObject explosion = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
-            // Đảm bảo explosion có scale phù hợp
-            explosion.transform.localScale = transform.localScale;
-        }
-        
-        // Phát âm thanh nổ (PlayClipAtPoint để âm thanh vẫn phát sau khi enemy bị Destroy)
-        if (explosionSound != null)
-        {
-            AudioSource.PlayClipAtPoint(explosionSound, transform.position);
-        }
-        
-        // Cộng điểm cho player
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.AddScore(scoreValue);
-        }
-        
-        if (showDebugInfo)
-        {
-            Debug.Log($"{gameObject.name} destroyed! Score: +{scoreValue}");
-        }
-        
-        Destroy(gameObject);
-    }
-    
+
     /// <summary>
     /// Va chạm trực tiếp với Player (kamikaze damage)
     /// </summary>
@@ -248,14 +159,18 @@ public class Enemy : MonoBehaviour
             PlayerHealth playerHealth = col.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
-                playerHealth.TakeDamage(contactDamage);
+                playerHealth.TakeDamage((int)contactDamage);
             }
-            
-            // Tự hủy khi đâm vào player
-            Die();
+
+            // Tự hủy thông qua EnemyHealth để đảm bảo LivingEnemyCount giảm
+            EnemyHealth enemyHealth = GetComponent<EnemyHealth>();
+            if (enemyHealth != null)
+            {
+                enemyHealth.TakeDamage(9999);
+            }
         }
     }
-    
+
     /// <summary>
     /// Vẽ gizmos trong Editor để debug
     /// </summary>

@@ -63,9 +63,9 @@ public class Projectile : MonoBehaviour {
 		
 		// ===== XỬ LÝ SÁT THƯƠNG ENEMY =====
 		if (col.gameObject.tag == "Enemy" && !isEnemyProjectile) {
-			Enemy enemy = col.gameObject.GetComponent<Enemy>();
-			if (enemy != null) {
-				enemy.TakeDamage(damage);
+			EnemyHealth enemyHealth = col.gameObject.GetComponent<EnemyHealth>();
+			if (enemyHealth != null) {
+				enemyHealth.TakeDamage((int)damage);
 			}
 		}
 		
@@ -73,7 +73,7 @@ public class Projectile : MonoBehaviour {
 		if (col.gameObject.tag == "Player" && isEnemyProjectile) {
 			PlayerHealth playerHealth = col.gameObject.GetComponent<PlayerHealth>();
 			if (playerHealth != null) {
-				playerHealth.TakeDamage(damage);
+				playerHealth.TakeDamage((int)damage);
 			}
 		}
 		

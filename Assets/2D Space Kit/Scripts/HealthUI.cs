@@ -37,7 +37,7 @@ public class HealthUI : MonoBehaviour
             playerHealth.OnHealthChanged.AddListener(UpdateHealthUI);
             
             // Update UI ban đầu
-            UpdateHealthUI(playerHealth.CurrentHealth, playerHealth.maxHealth);
+            UpdateHealthUI(playerHealth.CurrentHealth, playerHealth.MaxHealth);
         }
         else
         {
