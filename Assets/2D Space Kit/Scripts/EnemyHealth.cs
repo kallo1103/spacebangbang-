@@ -1,14 +1,16 @@
 using UnityEngine;
 
 /// <summary>
-/// Health cho Enemy - kế thừa Health base class
-/// Đếm số enemy còn sống bằng static LivingEnemyCount
-/// BattleFlow sẽ kiểm tra LivingEnemyCount <= 0 để trigger Game Win
+/// Health cho Enemy - kế thừa Health base class.
+/// Đếm số enemy còn sống bằng static LivingEnemyCount.
+/// BattleFlow sẽ kiểm tra LivingEnemyCount <= 0 để trigger Game Win.
+/// 
+/// HealthBar của enemy sử dụng Health.onHealthChanged event.
 /// </summary>
 public class EnemyHealth : Health
 {
     /// <summary>
-    /// Số enemy còn sống trong scene - dùng để kiểm tra thắng game
+    /// Số enemy còn sống trong scene - dùng để kiểm tra thắng game.
     /// </summary>
     public static int LivingEnemyCount;
 
@@ -34,7 +36,7 @@ public class EnemyHealth : Health
             GameManager.Instance.AddScore(scoreValue);
         }
 
-        // Gọi base.Die() để spawn explosion, destroy, và invoke onDead
+        // Gọi base.Die() để spawn explosion, invoke onDead & onHealthChanged, destroy
         base.Die();
     }
 }

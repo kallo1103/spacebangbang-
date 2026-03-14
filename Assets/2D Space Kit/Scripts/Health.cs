@@ -2,7 +2,10 @@ using UnityEngine;
 
 /// <summary>
 /// Base class cho tất cả object có health (Player, Enemy, ...)
-/// Cung cấp hệ thống máu, event onDead, và hiệu ứng nổ khi chết
+/// Cung cấp hệ thống máu, event onDead, onHealthChanged và hiệu ứng nổ khi chết.
+/// 
+/// HealthBar UI sẽ lắng nghe onHealthChanged để cập nhật thanh máu.
+/// BattleFlow sẽ lắng nghe onDead để xử lý luồng game.
 /// </summary>
 public class Health : MonoBehaviour
 {
@@ -13,27 +16,50 @@ public class Health : MonoBehaviour
     [Header("Sound")]
     public AudioClip explosionSound;      // Âm thanh nổ khi chết
 
+    // ─── Events ───────────────────────────────────────────────────
     /// <summary>
     /// Event được gọi khi object chết - BattleFlow sẽ lắng nghe event này
     /// </summary>
     public System.Action onDead;
 
-    // Internal
-    protected int currentHealth;
+    /// <summary>
+    /// Event được gọi mỗi khi healthPoint thay đổi - HealthBar sẽ lắng nghe event này
+    /// </summary>
+    public System.Action onHealthChanged;
+
+    // ─── Runtime State ────────────────────────────────────────────
+    /// <summary>
+    /// Máu hiện tại (public để HealthBar đọc được).
+    /// Không nên gán trực tiếp từ bên ngoài, dùng TakeDamage / Heal thay vì.
+    /// </summary>
+    [HideInInspector] public int healthPoint;
+
     protected SpriteRenderer spriteRenderer;
 
+    // ─── Lifecycle ────────────────────────────────────────────────
     protected virtual void Start()
     {
-        currentHealth = defaultHealthPoint;
+        healthPoint = defaultHealthPoint;
         spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // Thông báo cho HealthBar cập nhật lần đầu
+        onHealthChanged?.Invoke();
     }
 
+    // ─── Public API ───────────────────────────────────────────────
     /// <summary>
-    /// Gây sát thương cho object
+    /// Gây sát thương cho object.
+    /// Tự động gọi onHealthChanged và kiểm tra chết.
     /// </summary>
     public virtual void TakeDamage(int damage)
     {
-        currentHealth -= damage;
+        if (healthPoint <= 0) return;
+
+        healthPoint -= damage;
+        healthPoint = Mathf.Max(0, healthPoint);
+
+        // Thông báo cho HealthBar
+        onHealthChanged?.Invoke();
 
         // Hiệu ứng flash đỏ khi bị trúng đạn
         if (spriteRenderer != null)
@@ -41,14 +67,28 @@ public class Health : MonoBehaviour
             StartCoroutine(FlashRed());
         }
 
-        if (currentHealth <= 0)
+        if (healthPoint <= 0)
         {
             Die();
         }
     }
 
     /// <summary>
-    /// Xử lý khi chết - có thể override trong class con
+    /// Hồi máu cho object.
+    /// </summary>
+    public virtual void Heal(int amount)
+    {
+        if (healthPoint <= 0) return;
+
+        healthPoint += amount;
+        healthPoint = Mathf.Min(healthPoint, defaultHealthPoint);
+
+        onHealthChanged?.Invoke();
+    }
+
+    // ─── Protected ────────────────────────────────────────────────
+    /// <summary>
+    /// Xử lý khi chết - có thể override trong class con.
     /// </summary>
     protected virtual void Die()
     {
@@ -65,11 +105,11 @@ public class Health : MonoBehaviour
             AudioSource.PlayClipAtPoint(explosionSound, transform.position);
         }
 
+        // Gọi event onDead TRƯỚC KHI Destroy để listener vẫn nhận được
+        onDead?.Invoke();
+
         // Hủy object
         Destroy(gameObject);
-
-        // Gọi event onDead để thông báo cho BattleFlow
-        onDead?.Invoke();
     }
 
     protected System.Collections.IEnumerator FlashRed()
