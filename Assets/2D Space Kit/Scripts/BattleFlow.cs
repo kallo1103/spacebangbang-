@@ -37,12 +37,13 @@ public class BattleFlow : MonoBehaviour
 
     private void Update()
     {
-        // Kiểm tra đã thắng chưa (tất cả enemy bị tiêu diệt)
-        if (!isGameEnded && EnemyHealth.LivingEnemyCount <= 0)
+        // Kiểm tra đã thắng chưa (tất cả wave đã ra xong và không còn enemy)
+        if (!isGameEnded)
         {
-            // Chờ 1 frame để đảm bảo tất cả enemy đã Awake()
-            // (tránh trigger ngay lúc bắt đầu game khi chưa có enemy)
-            if (Time.timeSinceLevelLoad > 1f)
+            // Nếu EnemySpawner tồn tại thì dùng biến IsSpawningFinished, nếu không mặc định chờ hết enemy.
+            bool isSpawningFinished = EnemySpawner.Instance == null || EnemySpawner.Instance.IsSpawningFinished;
+            
+            if (isSpawningFinished && EnemyHealth.LivingEnemyCount <= 0 && Time.timeSinceLevelLoad > 1f)
             {
                 OnGameWin();
             }

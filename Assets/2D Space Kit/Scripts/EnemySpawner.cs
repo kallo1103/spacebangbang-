@@ -1,101 +1,90 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
-/// Script để spawn enemy tự động trong game
+/// Quản lý việc spawn theo danh sách các wave (từ ScriptableObject LevelWaveData).
+/// Có thể setup số lượng enemy, offset giữa các enemy và FlyPath riêng cho từng wave.
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Spawn Settings")]
-    public GameObject[] enemyPrefabs;       // Danh sách enemy prefabs
-    public float spawnInterval = 2f;        // Thời gian giữa các lần spawn
-    public float spawnDelay = 1f;           // Delay trước khi bắt đầu spawn
-    
-    [Header("Spawn Area")]
-    public float spawnRangeX = 8f;          // Phạm vi spawn theo X (giảm để nằm trong camera)
-    public float spawnPositionY = 5f;       // Vị trí Y spawn (giảm để nằm trong camera)
-    
-    [Header("Wave Settings")]
-    public bool useWaves = false;           // Bật chế độ wave
-    public int enemiesPerWave = 5;          // Số enemy mỗi wave
-    public float waveCooldown = 5f;         // Thời gian nghỉ giữa các wave
-    
-    // Private variables
-    private float nextSpawnTime;
-    private int currentWaveSpawnCount;
-    private bool isWaveCooldown;
-    
+    // Singleton để dễ dàng truy cập từ BattleFlow nếu cần
+    public static EnemySpawner Instance { get; private set; }
+
+    [Header("Level Waves")]
+    public LevelWaveData levelData;   // Kéo LevelWaveData Scriptable Object vào đây
+    public FlyPath[] paths;           // Danh sách các FlyPath có sẵn trong scene
+
+    // Báo hiệu spawner đã hoàn tất việc sinh ra tất cả wave
+    public bool IsSpawningFinished { get; private set; }
+
+    private int currentWaveIndex = 0;
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
     void Start()
     {
-        nextSpawnTime = Time.time + spawnDelay;
-        currentWaveSpawnCount = 0;
-        isWaveCooldown = false;
-    }
-    
-    void Update()
-    {
-        if (enemyPrefabs == null || enemyPrefabs.Length == 0) return;
-        
-        if (Time.time >= nextSpawnTime && !isWaveCooldown)
+        IsSpawningFinished = false;
+
+        if (levelData != null && levelData.enemyWaves.Length > 0)
         {
-            SpawnEnemy();
-            
-            if (useWaves)
+            StartCoroutine(SpawnEnemyWaves());
+        }
+        else
+        {
+            Debug.LogWarning("Chưa gán LevelWaveData cho EnemySpawner! Vui lòng tạo LevelWaveData và kéo vào.");
+            IsSpawningFinished = true;
+        }
+    }
+
+    private IEnumerator SpawnEnemyWaves()
+    {
+        while (currentWaveIndex < levelData.enemyWaves.Length)
+        {
+            var waveInfo = levelData.enemyWaves[currentWaveIndex];
+
+            // Tìm path tương ứng cho wave này
+            FlyPath wavePath = null;
+            if (waveInfo.pathIndex >= 0 && waveInfo.pathIndex < paths.Length)
             {
-                currentWaveSpawnCount++;
-                if (currentWaveSpawnCount >= enemiesPerWave)
-                {
-                    // Bắt đầu wave cooldown
-                    StartCoroutine(WaveCooldown());
-                }
+                wavePath = paths[waveInfo.pathIndex];
             }
-            
-            nextSpawnTime = Time.time + spawnInterval;
+
+            // Vị trí spawn ban đầu của wave (lấy điểm đầu tiên trên path, hoặc vị trí spawner)
+            Vector3 startPosition = wavePath != null ? wavePath.GetWaypointPosition(0) : transform.position;
+
+            // Spawn lần lượt số lượng enemy khai báo
+            for (int i = 0; i < waveInfo.numberOfEnemy; i++)
+            {
+                if (waveInfo.enemyPrefab != null)
+                {
+                    GameObject enemy = Instantiate(waveInfo.enemyPrefab, startPosition, Quaternion.identity);
+
+                    // Gán path và tốc độ di chuyển
+                    FlyPathFollower agent = enemy.GetComponent<FlyPathFollower>();
+                    if (agent != null)
+                    {
+                        if (wavePath != null) agent.flyPath = wavePath;
+                        if (waveInfo.speed > 0f) agent.moveSpeed = waveInfo.speed;
+                    }
+                }
+
+                // Dịch chuyển vị trí spawn cho enemy tiếp theo trong cùng 1 wave
+                startPosition += waveInfo.formationOffset;
+            }
+
+            currentWaveIndex++;
+
+            if (currentWaveIndex < levelData.enemyWaves.Length)
+            {
+                yield return new WaitForSeconds(waveInfo.nextWaveDelay);
+            }
         }
-    }
-    
-    private void SpawnEnemy()
-    {
-        // Random vị trí X trong phạm vi
-        float randomX = Random.Range(-spawnRangeX, spawnRangeX);
-        Vector3 spawnPosition = new Vector3(randomX, spawnPositionY, 0);
-        
-        // Random chọn enemy prefab
-        GameObject enemyPrefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
-        
-        // Spawn enemy
-        GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.Euler(0, 0, 180)); // Xoay 180 để hướng xuống
-        
-        // Random enemy settings một chút để đa dạng
-        Enemy enemyScript = enemy.GetComponent<Enemy>();
-        if (enemyScript != null)
-        {
-            enemyScript.moveSpeed *= Random.Range(0.8f, 1.2f);
-        }
-    }
-    
-    private System.Collections.IEnumerator WaveCooldown()
-    {
-        isWaveCooldown = true;
-        Debug.Log($"Wave completed! Next wave in {waveCooldown} seconds...");
-        yield return new WaitForSeconds(waveCooldown);
-        currentWaveSpawnCount = 0;
-        isWaveCooldown = false;
-        Debug.Log("New wave starting!");
-    }
-    
-    /// <summary>
-    /// Vẽ spawn area trong Editor
-    /// </summary>
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.green;
-        Vector3 center = new Vector3(transform.position.x, spawnPositionY, 0);
-        Vector3 size = new Vector3(spawnRangeX * 2, 1f, 0);
-        Gizmos.DrawWireCube(center, size);
-        
-        // Vẽ các vị trí spawn có thể
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(new Vector3(-spawnRangeX, spawnPositionY, 0), 0.5f);
-        Gizmos.DrawWireSphere(new Vector3(spawnRangeX, spawnPositionY, 0), 0.5f);
+
+        // Hoàn tất spawn mọi wave trong màn chơi
+        IsSpawningFinished = true;
+        Debug.Log("Đã spawn toàn bộ enemy waves.");
     }
 }

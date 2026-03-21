@@ -17,6 +17,8 @@ public class EnemyHealth : Health
     [Header("Score")]
     public int scoreValue = 100;  // Điểm nhận được khi tiêu diệt enemy này
 
+    private bool isDead = false;
+
     private void Awake()
     {
         // Mỗi khi enemy được tạo ra, tăng bộ đếm
@@ -26,6 +28,9 @@ public class EnemyHealth : Health
 
     protected override void Die()
     {
+        if (isDead) return;
+        isDead = true;
+
         // Giảm bộ đếm trước khi chết
         LivingEnemyCount--;
         Debug.Log($"Enemy killed. Living enemies: {LivingEnemyCount}");
@@ -38,5 +43,16 @@ public class EnemyHealth : Health
 
         // Gọi base.Die() để spawn explosion, invoke onDead & onHealthChanged, destroy
         base.Die();
+    }
+
+    private void OnDestroy()
+    {
+        // Đảm bảo giảm bộ đếm nếu enemy bị Destroy trực tiếp (VD: bay ra khỏi màn hình)
+        if (!isDead)
+        {
+            isDead = true;
+            LivingEnemyCount--;
+            Debug.Log($"Enemy destroyed. Living enemies: {LivingEnemyCount}");
+        }
     }
 }

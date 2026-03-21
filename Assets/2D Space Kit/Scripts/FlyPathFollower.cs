@@ -112,12 +112,10 @@ public class FlyPathFollower : MonoBehaviour
 
     /// <summary>
     /// Gọi khi enemy đi hết đường bay (không loop).
-    /// Override hoặc mở rộng để thêm behaviour khác.
     /// </summary>
     protected virtual void OnPathCompleted()
     {
-        // Mặc định: tiếp tục bay thẳng xuống sau khi hết path
-        // Hoặc có thể tự hủy
-        Debug.Log($"{gameObject.name}: Path completed. Continuing downward.");
+        Debug.Log($"{gameObject.name}: Path completed. Destroying object.");
+        Destroy(gameObject); // Hủy enemy khi bay hết đường
     }
 }

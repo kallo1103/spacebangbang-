@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using UnityEngine.InputSystem;
 
@@ -7,6 +7,7 @@ public class ExampleShipControl : MonoBehaviour {
 	[Header("Movement Settings")]
 	public float moveSpeed = 8f;          // Tốc độ bay
 	public float rotationSpeed = 15f;     // Tốc độ xoay đầu
+	public float touchYOffset = 1.0f;     // Khoảng cách ship nằm trên ngón tay khi chạm
 
 	[Header("Shooting Settings")]
 	public GameObject projectilePrefab;   // Prefab viên đạn (kéo Projectile Sharp vào đây)
@@ -24,42 +25,57 @@ public class ExampleShipControl : MonoBehaviour {
 	}
 	
 	void Update () {
-		// Kiểm tra hệ thống nhập liệu
-		if (Keyboard.current == null || Pointer.current == null) return;
-
-		// --- 1. DI CHUYỂN (WASD) ---
+		// --- 1. DI CHUYỂN BẰNG BÀN PHÍM (NẾU CÓ) ---
 		float moveX = 0f;
 		float moveY = 0f;
 
-		if (Keyboard.current.wKey.isPressed) moveY = 1f;
-		if (Keyboard.current.sKey.isPressed) moveY = -1f;
-		if (Keyboard.current.aKey.isPressed) moveX = -1f;
-		if (Keyboard.current.dKey.isPressed) moveX = 1f;
+		if (Keyboard.current != null) {
+			if (Keyboard.current.wKey.isPressed) moveY = 1f;
+			if (Keyboard.current.sKey.isPressed) moveY = -1f;
+			if (Keyboard.current.aKey.isPressed) moveX = -1f;
+			if (Keyboard.current.dKey.isPressed) moveX = 1f;
+		}
 
-		// Tạo Vector hướng di chuyển (Normalized để không đi chéo nhanh hơn)
 		Vector2 moveDirection = new Vector2(moveX, moveY).normalized;
-
-		// Gán vận tốc trực tiếp (Kiểu Arcade: Thả phím là dừng ngay)
-		rb.linearVelocity = moveDirection * moveSpeed;
-
-
-		// --- 2. XOAY THEO CHUỘT (AIM) ---
-		// Lấy vị trí chuột trong thế giới game
-		Vector2 mouseScreenPos = Pointer.current.position.ReadValue();
-		Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
 		
-		// Tính góc xoay
-		Vector2 direction = (Vector3)mouseWorldPos - transform.position;
-		float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f; // -90 vì sprite gốc hướng lên
-		Quaternion targetRotation = Quaternion.AngleAxis(angle, Vector3.forward);
-		
-		// Xoay máy bay
-		transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+		if (moveDirection.magnitude > 0) {
+			rb.linearVelocity = moveDirection * moveSpeed;
+		} else {
+			rb.linearVelocity = Vector2.zero;
+		}
 
-		// --- 3. BẮN ĐẠN (CLICK CHUỘT TRÁI) ---
-		if (Mouse.current.leftButton.isPressed && Time.time >= nextFireTime) {
-			Shoot();
-			nextFireTime = Time.time + fireRate;
+		// --- 2. DI CHUYỂN & CHUẨN ĐÍCH THEO CẢM ỨNG / CHUỘT ---
+		if (Pointer.current != null) {
+			bool isPressing = Pointer.current.press.isPressed;
+			Vector2 screenPos = Pointer.current.position.ReadValue();
+			Vector3 worldPos = Camera.main.ScreenToWorldPoint(screenPos);
+			worldPos.z = 0f;
+
+			if (isPressing) {
+				// Di chuyển phi thuyền bay theo điểm chạm (Move Towards) để không bị teleport
+				// Move above finger (nằm trên ngón tay) khi chơi ở điện thoại
+				if (Touchscreen.current != null && Touchscreen.current.touches.Count > 0)
+				{
+					worldPos.y += touchYOffset;
+				}
+				
+				// Di chuyển mượt về phía vị trí chỉ định
+				transform.position = Vector3.MoveTowards(transform.position, worldPos, moveSpeed * 1.5f * Time.deltaTime);
+
+				// Xoay đầu hướng về phía chạm / điểm đến di chuyển (nếu không ở ngay tại điểm)
+				Vector2 direction = (Vector3)worldPos - transform.position;
+				if (direction.sqrMagnitude > 0.05f) {
+					float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+					Quaternion targetRotation = Quaternion.AngleAxis(angle, Vector3.forward);
+					transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+				}
+
+				// --- 3. AUTO BẮN KHI ĐANG CHẠM ---
+				if (Time.time >= nextFireTime) {
+					Shoot();
+					nextFireTime = Time.time + fireRate;
+				}
+			}
 		}
 	}
 
